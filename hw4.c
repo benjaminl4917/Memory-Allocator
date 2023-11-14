@@ -91,7 +91,11 @@ int main() {
             
             int ptr = mallocBlock(size);
             printf("%d\n", ptr);
-        } else {
+        }else if (strcmp(command, "printheap") == 0){
+            for (int i = 0; i < HEAP_SIZE; i++ ){
+                printf("%d\n", heap[i]);
+            }
+        }else {
             printf("Invalid command\n");
         }
     }
