@@ -65,10 +65,49 @@ int mallocBlock(int size) {
                 }
             }
         }
+        printf("%d\n", ((heap[x] >> 1) & 0x7F) + 1);
         x += ((heap[x] >> 1) & 0x7F) + 1; // Move to the next block using the size from the header (considering the first 7 bits)
     }
     //best fit 
     return -1;
+}
+
+int reallocBlock(int ptr, int newSize) {
+    int blockHeader = ptr - 1; // Calculate the header index from the pointer
+
+    if (ptr < 1 || blockHeader >= HEAP_SIZE || (heap[blockHeader] & 1) == 0) {
+        // Invalid pointer or block is not allocated
+        return -1;
+    }
+
+    int block_size = heap[blockHeader] >> 1; // Extract the size from the header
+
+    if (block_size >= newSize) {
+        // Truncate the block if the new size is smaller than the current size
+        heap[blockHeader] = (newSize << 1) | 1;
+        return ptr;
+    } else {
+        int nextBlock = blockHeader + block_size + 1; // Get the address of the next block
+
+        while (nextBlock < HEAP_SIZE && (heap[nextBlock] & 1) == 0) {
+            block_size += ((heap[nextBlock] >> 1) & 0x7F) + 1; // Calculate the combined size of adjacent free blocks
+
+            if (block_size >= newSize) {
+                // Expand the block into adjacent free space
+                heap[blockHeader] = (block_size << 1) | 1; // Allocate the expanded blocks
+                return ptr;
+            }
+            nextBlock += ((heap[nextBlock] >> 1) & 0x7F) + 1; // Move to the next block
+        }
+
+        // Allocate a new block if there is not enough adjacent free space
+        int newPtr = mallocBlock(newSize);
+        if (newPtr != -1) {
+            memcpy(&heap[newPtr - 1], &heap[ptr - 1], block_size); // Copy contents to the new block
+            heap[ptr - 1] = 0; // Free the old block
+        }
+        return newPtr;
+    }
 }
 
 
@@ -91,6 +130,11 @@ int main() {
             
             int ptr = mallocBlock(size);
             printf("%d\n", ptr);
+        } else if (strcmp(command, "realloc") == 0) {
+            int ptr, newSize;
+            scanf("%d %d", &ptr, &newSize);
+            int newPtr = reallocBlock(ptr, newSize);
+            printf("%d\n", newPtr);
         }else if (strcmp(command, "printheap") == 0){
             for (int i = 0; i < HEAP_SIZE; i++ ){
                 printf("%d\n", heap[i]);
