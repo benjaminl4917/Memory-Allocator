@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
-#include <math.h>
+
 
 #define HEAP_SIZE 127
 
@@ -23,27 +23,6 @@ void heap_initialization(){
     set_allocated(0, false);
 }
 
-int convert(long long n) {
-  int dec = 0, i = 0, rem;
-
-  while (n != 0) {
-
-    // get remainder of n divided by 10
-    rem = n % 10;
-
-    // divide n by 10
-    n /= 10;
-
-    // multiply rem by (2 ^ i)
-    // add the product to dec
-    dec += rem * pow(2, i);
-
-    // increment i
-    ++i;
-  }
-
-  return dec;
-}
 
 int mallocBlock(int size) {
     int x = 0;
@@ -110,6 +89,17 @@ int reallocBlock(int ptr, int newSize) {
     }
 }
 
+int freeBlock(int ptr){
+    int blockHeader = ptr - 1; // Calculate the header index from the pointer
+    int blockSize = ((heap[blockHeader] >> 1) & 0x7F); //gets the size of the block excluding the header 
+    //printf("block size: %d\n", blockSize);
+    int headerPayload = blockSize + blockHeader;
+    for(int i = blockHeader; i<=headerPayload; i++){ //iterates from ptr to the last allocated block and sets the value to 0
+        //printf("index: %d\n", i);
+        heap[i] = 0; //sets everything inlcuding header to 0
+    }
+}
+
 
 //00000001 1 2 3 4 5 6 7 8 9 10
 //Header 1 2 3 4 5 6 7 8 9 10
@@ -135,6 +125,13 @@ int main() {
             scanf("%d %d", &ptr, &newSize);
             int newPtr = reallocBlock(ptr, newSize);
             printf("%d\n", newPtr);
+        }else if (strcmp(command, "free") == 0){
+            int ptr;
+            scanf("%d", &ptr);
+            freeBlock(ptr);
+            printf("payload: %d freed\n",ptr);
+
+
         }else if (strcmp(command, "printheap") == 0){
             for (int i = 0; i < HEAP_SIZE; i++ ){
                 printf("%d\n", heap[i]);
