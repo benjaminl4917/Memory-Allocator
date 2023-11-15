@@ -31,17 +31,6 @@ void coalesce(int ptr, int blockSize) {
     printf("pointer: %d\n", ptr);
     printf("heap[next]: %d next: %d\n", heap[next], next);
     printf("heap[next]&1 %d\n",heap[next]&1);
-    while (next < HEAP_SIZE && heap[next] != 0 && ((heap[next] & 1) == 0)) {
-        int nextBlockSize = (heap[next] >> 1) & 0x7F; // Extract the size from the next block's header
-        printf("nextBlockSize: %d\n",nextBlockSize);
-        heap[next] = 0;
-        // Merge the current and next blocks
-        heap[ptr] = ((blockSize + nextBlockSize) << 1) + 2;
-
-        // Move to the next block
-        blockSize += nextBlockSize; // Update the merged block's size
-        next = ptr + blockSize; // Recalculate the address of the next block
-    }
 
     // Handle sequences of zero bytes
     int start = ptr + blockSize; // Start from the end of the coalesced block
@@ -52,10 +41,24 @@ void coalesce(int ptr, int blockSize) {
 
             // End of zero byte sequence, merge with the previous block
             blockSize += (i - start);
-            heap[ptr] = (blockSize << 1) + 1;
+            heap[ptr] = (blockSize << 1);
+            
             set_allocated(ptr, false);
             break;
         }
+    }
+
+    while (next < HEAP_SIZE && heap[next] != 0 && ((heap[next] & 1) == 0)) {
+        int nextBlockSize = (heap[next] >> 1) & 0x7F; // Extract the size from the next block's header
+        printf("nextBlockSize: %d\n",nextBlockSize);
+        heap[next] = 0;
+        // Merge the current and next blocks
+        printf("merged: %d\n", ((blockSize + nextBlockSize) << 1) + 2);
+        heap[ptr] = ((blockSize + nextBlockSize) << 1) + 2;
+
+        // Move to the next block
+        blockSize += nextBlockSize; // Update the merged block's size
+        next = ptr + blockSize; // Recalculate the address of the next block
     }
 }
 
@@ -81,7 +84,7 @@ int mallocBlock(int size) {
                 }
             }
         }
-        printf("%d\n", ((heap[x] >> 1) & 0x7F) + 1);
+        // printf("%d\n", ((heap[x] >> 1) & 0x7F) + 1);
         x += ((heap[x] >> 1) & 0x7F) + 1; // Move to the next block using the size from the header (considering the first 7 bits)
     }
     //best fit 
