@@ -23,36 +23,42 @@ void heap_initialization(){
     set_allocated(0, false);
 }
 
-void coalesce(int ptr, int blockSize){
+void coalesce(int ptr, int blockSize) {
     // Forward coalesce: Check if there are adjacent free blocks 
     // after going past the block size, and if there are, merge the free blocks together
 
-    int next = ptr + blockSize + 1; // Get the address of the next block
-    int counter = 0;
-    int allocated = 1;
-    while (next < HEAP_SIZE && (heap[next] & 1) == 0) {
-        if (heap[next] == 0){
-            counter+=1;
-            next+=1;
-            allocated = 0;
-            printf("counter: %d\n",counter);
-        }
-        else{
-            int nextBlockSize = (heap[next] >> 1) & 0x7F; // Extract the size from the next block's header
-            printf("next block size %d\n", nextBlockSize);
-            // Merge the current and next blocks
-            heap[ptr] = ((blockSize + nextBlockSize) << 1);
-            
-            // Move to the next block
-            blockSize += nextBlockSize; // Update the merged block's size
-            next = ptr + blockSize; // Recalculate the address of the next block
-        }
-        
+    int next = ptr + blockSize+1; // Get the address of the next block
+    printf("pointer: %d\n", ptr);
+    printf("heap[next]: %d next: %d\n", heap[next], next);
+    printf("heap[next]&1 %d\n",heap[next]&1);
+    while (next < HEAP_SIZE && heap[next] != 0 && ((heap[next] & 1) == 0)) {
+        int nextBlockSize = (heap[next] >> 1) & 0x7F; // Extract the size from the next block's header
+        printf("nextBlockSize: %d\n",nextBlockSize);
+        heap[next] = 0;
+        // Merge the current and next blocks
+        heap[ptr] = ((blockSize + nextBlockSize) << 1) + 2;
+
+        // Move to the next block
+        blockSize += nextBlockSize; // Update the merged block's size
+        next = ptr + blockSize; // Recalculate the address of the next block
     }
-    if (allocated == 0){
-        heap[ptr] = ((blockSize + counter) << 1) + 1;
+
+    // Handle sequences of zero bytes
+    int start = ptr + blockSize; // Start from the end of the coalesced block
+
+    for (int i = start; i < HEAP_SIZE; ++i) {
+       if (heap[i] != 0 || i == HEAP_SIZE-1) {
+            printf("i: %d\n",i);
+
+            // End of zero byte sequence, merge with the previous block
+            blockSize += (i - start);
+            heap[ptr] = (blockSize << 1) + 1;
+            set_allocated(ptr, false);
+            break;
+        }
     }
 }
+
 
 
 int mallocBlock(int size) {
