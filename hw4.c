@@ -48,7 +48,11 @@ void coalesce(int ptr, int blockSize) {
         }
     }
 
+    bool flag = 0;
+    int newPtr = 0;
     while (next < HEAP_SIZE && heap[next] != 0 && ((heap[next] & 1) == 0)) {
+        newPtr = ptr;
+        bool flag = 1;
         int nextBlockSize = (heap[next] >> 1) & 0x7F; // Extract the size from the next block's header
         printf("nextBlockSize: %d\n",nextBlockSize);
         heap[next] = 0;
@@ -60,6 +64,7 @@ void coalesce(int ptr, int blockSize) {
         blockSize += nextBlockSize; // Update the merged block's size
         next = ptr + blockSize; // Recalculate the address of the next block
     }
+
 }
 
 
@@ -145,16 +150,23 @@ void freeBlock(int ptr){
     coalesce(blockHeader, blockSize); //after freeing coelesce from the freed header 
 }
 
-int blockList(){
+void blockList(){
     int start = 0;
-    int end = 0;
 
     while (start < HEAP_SIZE){
         if ((heap[start] & 1) == 1){ //if the LSB is 1 that means it's a header
             int blockSize = ((heap[start] >> 1) & 0x7F);
             //print from start+1 (payload) to start + blockSize (end of payload)
-            printf("%d, %d, allocated\n", start+1, start+blockSize);
-
+            printf("%d, %d, allocated\n", start+1, blockSize);      
+            start = start + blockSize + 1;   
+        }else{ //not allocated
+            int secondStart = start;
+            int end = secondStart;
+            while (end < HEAP_SIZE && ((heap[end] & 1) == 0 || heap[end] == 0)){
+                end++;
+            }
+            printf("%d, %d, free\n", secondStart+1, end - secondStart-1); 
+            start = end;         
         }
 
 
@@ -192,15 +204,35 @@ int main() {
             freeBlock(ptr);
             printf("payload: %d freed\n",ptr);
         }else if (strcmp(command, "blocklist") == 0){
-            int ptr;
-            scanf("%d", &ptr);
-            blockList(ptr);
-            printf("payload: %d freed\n",ptr);
+            blockList();
 
         }else if (strcmp(command, "printheap") == 0){
             for (int i = 0; i < HEAP_SIZE; i++ ){
                 printf("%d\n", heap[i]);
             }
+        }else if (strcmp(command, "writemem") == 0){
+            int ptr;
+            int i =0;
+            char input[127];
+            scanf("%d %s", &ptr, input);
+
+            while (input[i] != '\0'){
+                heap[ptr] = input[i];
+                ptr++;
+                i++;
+            }
+        }else if (strcmp(command, "printmem") == 0){
+            int ptr, size;
+            int i =0;
+            scanf("%d %d", &ptr, &size);
+
+            while (i < size){
+                printf("%x ", heap[ptr+i]);
+                i++;
+            }
+            printf("\n");
+        }else if (strcmp(command, "quit") == 0){
+            break;
         }else {
             printf("Invalid command\n");
         }
