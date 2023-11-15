@@ -23,6 +23,37 @@ void heap_initialization(){
     set_allocated(0, false);
 }
 
+void coalesce(int ptr, int blockSize){
+    // Forward coalesce: Check if there are adjacent free blocks 
+    // after going past the block size, and if there are, merge the free blocks together
+
+    int next = ptr + blockSize + 1; // Get the address of the next block
+    int counter = 0;
+    int allocated = 1;
+    while (next < HEAP_SIZE && (heap[next] & 1) == 0) {
+        if (heap[next] == 0){
+            counter+=1;
+            next+=1;
+            allocated = 0;
+            printf("counter: %d\n",counter);
+        }
+        else{
+            int nextBlockSize = (heap[next] >> 1) & 0x7F; // Extract the size from the next block's header
+            printf("next block size %d\n", nextBlockSize);
+            // Merge the current and next blocks
+            heap[ptr] = ((blockSize + nextBlockSize) << 1);
+            
+            // Move to the next block
+            blockSize += nextBlockSize; // Update the merged block's size
+            next = ptr + blockSize; // Recalculate the address of the next block
+        }
+        
+    }
+    if (allocated == 0){
+        heap[ptr] = ((blockSize + counter) << 1) + 1;
+    }
+}
+
 
 int mallocBlock(int size) {
     int x = 0;
@@ -89,17 +120,38 @@ int reallocBlock(int ptr, int newSize) {
     }
 }
 
-int freeBlock(int ptr){
+
+
+
+void freeBlock(int ptr){
     int blockHeader = ptr - 1; // Calculate the header index from the pointer
     int blockSize = ((heap[blockHeader] >> 1) & 0x7F); //gets the size of the block excluding the header 
     //printf("block size: %d\n", blockSize);
     int headerPayload = blockSize + blockHeader;
-    for(int i = blockHeader; i<=headerPayload; i++){ //iterates from ptr to the last allocated block and sets the value to 0
+    set_allocated(blockHeader, false); //make the header have LSB 0 to show it's not allocated 
+    for(int i = ptr; i<=headerPayload; i++){ //iterates from ptr to the last allocated block and sets the value to 0
         //printf("index: %d\n", i);
         heap[i] = 0; //sets everything inlcuding header to 0
     }
+    coalesce(blockHeader, blockSize); //after freeing coelesce from the freed header 
 }
 
+int blockList(){
+    int start = 0;
+    int end = 0;
+
+    while (start < HEAP_SIZE){
+        if ((heap[start] & 1) == 1){ //if the LSB is 1 that means it's a header
+            int blockSize = ((heap[start] >> 1) & 0x7F);
+            //print from start+1 (payload) to start + blockSize (end of payload)
+            printf("%d, %d, allocated\n", start+1, start+blockSize);
+
+        }
+
+
+    }
+
+}
 
 //00000001 1 2 3 4 5 6 7 8 9 10
 //Header 1 2 3 4 5 6 7 8 9 10
@@ -130,7 +182,11 @@ int main() {
             scanf("%d", &ptr);
             freeBlock(ptr);
             printf("payload: %d freed\n",ptr);
-
+        }else if (strcmp(command, "blocklist") == 0){
+            int ptr;
+            scanf("%d", &ptr);
+            blockList(ptr);
+            printf("payload: %d freed\n",ptr);
 
         }else if (strcmp(command, "printheap") == 0){
             for (int i = 0; i < HEAP_SIZE; i++ ){
