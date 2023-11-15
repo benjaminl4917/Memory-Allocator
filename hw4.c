@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
-#include <math.h>
+
 
 #define HEAP_SIZE 127
 
@@ -23,27 +23,43 @@ void heap_initialization(){
     set_allocated(0, false);
 }
 
-int convert(long long n) {
-  int dec = 0, i = 0, rem;
+void coalesce(int ptr, int blockSize) {
+    // Forward coalesce: Check if there are adjacent free blocks 
+    // after going past the block size, and if there are, merge the free blocks together
 
-  while (n != 0) {
+    int next = ptr + blockSize+1; // Get the address of the next block
+    printf("pointer: %d\n", ptr);
+    printf("heap[next]: %d next: %d\n", heap[next], next);
+    printf("heap[next]&1 %d\n",heap[next]&1);
+    while (next < HEAP_SIZE && heap[next] != 0 && ((heap[next] & 1) == 0)) {
+        int nextBlockSize = (heap[next] >> 1) & 0x7F; // Extract the size from the next block's header
+        printf("nextBlockSize: %d\n",nextBlockSize);
+        heap[next] = 0;
+        // Merge the current and next blocks
+        heap[ptr] = ((blockSize + nextBlockSize) << 1) + 2;
 
-    // get remainder of n divided by 10
-    rem = n % 10;
+        // Move to the next block
+        blockSize += nextBlockSize; // Update the merged block's size
+        next = ptr + blockSize; // Recalculate the address of the next block
+    }
 
-    // divide n by 10
-    n /= 10;
+    // Handle sequences of zero bytes
+    int start = ptr + blockSize; // Start from the end of the coalesced block
 
-    // multiply rem by (2 ^ i)
-    // add the product to dec
-    dec += rem * pow(2, i);
+    for (int i = start; i < HEAP_SIZE; ++i) {
+       if (heap[i] != 0 || i == HEAP_SIZE-1) {
+            printf("i: %d\n",i);
 
-    // increment i
-    ++i;
-  }
-
-  return dec;
+            // End of zero byte sequence, merge with the previous block
+            blockSize += (i - start);
+            heap[ptr] = (blockSize << 1) + 1;
+            set_allocated(ptr, false);
+            break;
+        }
+    }
 }
+
+
 
 int mallocBlock(int size) {
     int x = 0;
@@ -111,6 +127,38 @@ int reallocBlock(int ptr, int newSize) {
 }
 
 
+
+
+void freeBlock(int ptr){
+    int blockHeader = ptr - 1; // Calculate the header index from the pointer
+    int blockSize = ((heap[blockHeader] >> 1) & 0x7F); //gets the size of the block excluding the header 
+    //printf("block size: %d\n", blockSize);
+    int headerPayload = blockSize + blockHeader;
+    set_allocated(blockHeader, false); //make the header have LSB 0 to show it's not allocated 
+    for(int i = ptr; i<=headerPayload; i++){ //iterates from ptr to the last allocated block and sets the value to 0
+        //printf("index: %d\n", i);
+        heap[i] = 0; //sets everything inlcuding header to 0
+    }
+    coalesce(blockHeader, blockSize); //after freeing coelesce from the freed header 
+}
+
+int blockList(){
+    int start = 0;
+    int end = 0;
+
+    while (start < HEAP_SIZE){
+        if ((heap[start] & 1) == 1){ //if the LSB is 1 that means it's a header
+            int blockSize = ((heap[start] >> 1) & 0x7F);
+            //print from start+1 (payload) to start + blockSize (end of payload)
+            printf("%d, %d, allocated\n", start+1, start+blockSize);
+
+        }
+
+
+    }
+
+}
+
 //00000001 1 2 3 4 5 6 7 8 9 10
 //Header 1 2 3 4 5 6 7 8 9 10
 //Header1 ========== Header2 ============ _________________ 
@@ -135,6 +183,17 @@ int main() {
             scanf("%d %d", &ptr, &newSize);
             int newPtr = reallocBlock(ptr, newSize);
             printf("%d\n", newPtr);
+        }else if (strcmp(command, "free") == 0){
+            int ptr;
+            scanf("%d", &ptr);
+            freeBlock(ptr);
+            printf("payload: %d freed\n",ptr);
+        }else if (strcmp(command, "blocklist") == 0){
+            int ptr;
+            scanf("%d", &ptr);
+            blockList(ptr);
+            printf("payload: %d freed\n",ptr);
+
         }else if (strcmp(command, "printheap") == 0){
             for (int i = 0; i < HEAP_SIZE; i++ ){
                 printf("%d\n", heap[i]);
