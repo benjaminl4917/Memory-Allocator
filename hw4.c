@@ -32,37 +32,40 @@ void coalesce(int ptr, int blockSize) {
     printf("heap[next]: %d next: %d\n", heap[next], next);
     printf("heap[next]&1 %d\n",heap[next]&1);
 
-    // Handle sequences of zero bytes
-    int start = ptr + blockSize; // Start from the end of the coalesced block
+    if ((heap[next] & 1) == 0){
 
-    for (int i = start; i < HEAP_SIZE; ++i) {
-       if (heap[i] != 0 || i == HEAP_SIZE-1) {
-            printf("i: %d\n",i);
+        // Handle sequences of zero bytes
+        int start = ptr + blockSize; // Start from the end of the coalesced block
 
-            // End of zero byte sequence, merge with the previous block
-            blockSize += (i - start);
-            heap[ptr] = (blockSize << 1);
-            
-            set_allocated(ptr, false);
-            break;
+        for (int i = start; i < HEAP_SIZE; ++i) {
+        if (heap[i] != 0 || i == HEAP_SIZE-1) {
+                printf("i: %d\n",i);
+
+                // End of zero byte sequence, merge with the previous block
+                blockSize += (i - start);
+                heap[ptr] = (blockSize << 1);
+                
+                set_allocated(ptr, false);
+                break;
+            }
         }
-    }
 
-    bool flag = 0;
-    int newPtr = 0;
-    while (next < HEAP_SIZE && heap[next] != 0 && ((heap[next] & 1) == 0)) {
-        newPtr = ptr;
-        bool flag = 1;
-        int nextBlockSize = (heap[next] >> 1) & 0x7F; // Extract the size from the next block's header
-        printf("nextBlockSize: %d\n",nextBlockSize);
-        heap[next] = 0;
-        // Merge the current and next blocks
-        printf("merged: %d\n", ((blockSize + nextBlockSize) << 1) + 2);
-        heap[ptr] = ((blockSize + nextBlockSize) << 1) + 2;
+        bool flag = 0;
+        int newPtr = 0;
+        while (next < HEAP_SIZE && heap[next] != 0 && ((heap[next] & 1) == 0)) {
+            newPtr = ptr;
+            bool flag = 1;
+            int nextBlockSize = (heap[next] >> 1) & 0x7F; // Extract the size from the next block's header
+            printf("nextBlockSize: %d\n",nextBlockSize);
+            heap[next] = 0;
+            // Merge the current and next blocks
+            printf("merged: %d\n", ((blockSize + nextBlockSize) << 1) + 2);
+            heap[ptr] = ((blockSize + nextBlockSize) << 1) + 2;
 
-        // Move to the next block
-        blockSize += nextBlockSize; // Update the merged block's size
-        next = ptr + blockSize; // Recalculate the address of the next block
+            // Move to the next block
+            blockSize += nextBlockSize; // Update the merged block's size
+            next = ptr + blockSize; // Recalculate the address of the next block
+        }
     }
 
 }
@@ -71,6 +74,9 @@ void coalesce(int ptr, int blockSize) {
 
 int mallocBlock(int size) {
     int x = 0;
+    int prevBlockEnd = 0;
+
+
     while (x < HEAP_SIZE) {
         if ((heap[x] & 1) == 0) {
             int block_size = heap[x] >> 1; // Extract the size from the first 7 bits
@@ -93,6 +99,45 @@ int mallocBlock(int size) {
         x += ((heap[x] >> 1) & 0x7F) + 1; // Move to the next block using the size from the header (considering the first 7 bits)
     }
     //best fit 
+    // Shift all allocated blocks towards the beginning of the heap
+    int y = 0;
+    int free_block_size = 0;
+    while(y < HEAP_SIZE){
+        printf("y = %d, size = %d\n", y , (heap[y] >> 1) & 0x7F);
+        if((heap[y] & 1) == 0){
+            int block_size = heap[y] >> 1;
+            free_block_size = ((heap[y] >> 1) & 0x7F);
+            int free_block_index = y;
+            int nextBlock = y + free_block_size + 1;
+            printf("free_block_size[1] = %d\n", free_block_size);
+            // printf("nextBlock = %d\n", nextBlock);
+            printf("next block size = %d, heap[nextBlock]&1= %d \n", heap[nextBlock], heap[nextBlock] & 1);
+            printf("free_block_index = %d\n", free_block_index);
+            while (nextBlock < HEAP_SIZE && (heap[nextBlock] & 1) == 0) {
+                free_block_size += ((heap[nextBlock] >> 1) & 0x7F); // Calculate the combined size of adjacent free blocks
+                printf("free_block_size = %d", free_block_size);
+                nextBlock += ((heap[nextBlock] >> 1) & 0x7F) + 1; // Move to the next block
+                printf("nextBlock = %d\n", nextBlock);
+            }
+            if ((heap[nextBlock] & 1) == 1){
+                int allocated_block_size = (heap[nextBlock] >> 1) & 0x7F;
+
+                // Copy the allocated block to the start of the free block
+                memcpy(&heap[free_block_index], &heap[nextBlock], allocated_block_size);
+
+                // Mark the destination block as allocated
+                heap[free_block_index] = (allocated_block_size << 1) | 1;
+
+                // Update the nextBlock pointer
+                nextBlock = free_block_index + allocated_block_size + 1;
+
+                for (int i = y + allocated_block_size; i < HEAP_SIZE - free_block_size; ++i) {
+                    heap[i] = heap[i + free_block_size]; // Shift the block contents free_block_size bytes backward
+                }
+            }
+        }
+        y += ((heap[y] >> 1) & 0x7F) + 1; // Move to the next block using the size from the header (considering the first 7 bits)
+    }
     return -1;
 }
 
@@ -129,6 +174,8 @@ int reallocBlock(int ptr, int newSize) {
         if (newPtr != -1) {
             memcpy(&heap[newPtr - 1], &heap[ptr - 1], block_size); // Copy contents to the new block
             heap[ptr - 1] = 0; // Free the old block
+            memset(&heap[ptr], 0, block_size); //Set the old block to zeros
+            heap[newPtr - 1] = (newSize << 1) | 1;
         }
         return newPtr;
     }
@@ -144,7 +191,7 @@ void freeBlock(int ptr){
     int headerPayload = blockSize + blockHeader;
     set_allocated(blockHeader, false); //make the header have LSB 0 to show it's not allocated 
     for(int i = ptr; i<=headerPayload; i++){ //iterates from ptr to the last allocated block and sets the value to 0
-        //printf("index: %d\n", i);
+        printf("index: %d, value: %d \n", i, heap[i]);
         heap[i] = 0; //sets everything inlcuding header to 0
     }
     coalesce(blockHeader, blockSize); //after freeing coelesce from the freed header 
