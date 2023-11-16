@@ -1,0 +1,17 @@
+malloc 10
+malloc 5
+malloc 2
+realloc 1 20
+realloc 1 5
+malloc 10
+free 12
+free 1
+blocklist
+malloc 10
+malloc 5
+writemem 1 FF
+free 1
+malloc 5
+writemem 5 ABC
+printmem 5 3
+quit
