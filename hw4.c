@@ -28,9 +28,9 @@ void coalesce(int ptr, int blockSize) {
     // after going past the block size, and if there are, merge the free blocks together
 
     int next = ptr + blockSize+1; // Get the address of the next block
-    printf("pointer: %d\n", ptr);
-    printf("heap[next]: %d next: %d\n", heap[next], next);
-    printf("heap[next]&1 %d\n",heap[next]&1);
+    // printf("pointer: %d\n", ptr);
+    // printf("heap[next]: %d next: %d\n", heap[next], next);
+    // printf("heap[next]&1 %d\n",heap[next]&1);
 
     // Handle sequences of zero bytes
     int start = ptr + blockSize; // Start from the end of the coalesced block
@@ -54,10 +54,10 @@ void coalesce(int ptr, int blockSize) {
         newPtr = ptr;
         bool flag = 1;
         int nextBlockSize = (heap[next] >> 1) & 0x7F; // Extract the size from the next block's header
-        printf("nextBlockSize: %d\n",nextBlockSize);
+        //printf("nextBlockSize: %d\n",nextBlockSize);
         heap[next] = 0;
         // Merge the current and next blocks
-        printf("merged: %d\n", ((blockSize + nextBlockSize) << 1) + 2);
+        //printf("merged: %d\n", ((blockSize + nextBlockSize) << 1) + 2);
         heap[ptr] = ((blockSize + nextBlockSize) << 1) + 2;
 
         // Move to the next block
@@ -157,7 +157,7 @@ void blockList(){
         if ((heap[start] & 1) == 1){ //if the LSB is 1 that means it's a header
             int blockSize = ((heap[start] >> 1) & 0x7F);
             //print from start+1 (payload) to start + blockSize (end of payload)
-            printf("%d, %d, allocated\n", start+1, blockSize);      
+            //printf("%d, %d, allocated\n", start+1, blockSize);      
             start = start + blockSize + 1;   
         }else{ //not allocated
             int secondStart = start;
@@ -165,7 +165,7 @@ void blockList(){
             while (end < HEAP_SIZE && ((heap[end] & 1) == 0 || heap[end] == 0)){
                 end++;
             }
-            printf("%d, %d, free\n", secondStart+1, end - secondStart-1); 
+            //printf("%d, %d, free\n", secondStart+1, end - secondStart-1); 
             start = end;         
         }
 
