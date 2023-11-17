@@ -30,10 +30,6 @@ void coalesce(int ptr, int blockSize) {
     // after going past the block size, and if there are, merge the free blocks together
 
     int next = ptr + blockSize+1; // Get the address of the next block
-    // printf("pointer: %d\n", ptr);
-    // printf("heap[next]: %d next: %d\n", heap[next], next);
-    // printf("heap[next]&1 %d\n",heap[next]&1);
-
     if ((heap[next] & 1) == 0){
 
         // Handle sequences of zero bytes
@@ -41,7 +37,6 @@ void coalesce(int ptr, int blockSize) {
 
         for (int i = start; i < HEAP_SIZE; ++i) {
         if (heap[i] != 0 || i == HEAP_SIZE-1) {
-                printf("i: %d\n",i);
 
                 // End of zero byte sequence, merge with the previous block
                 blockSize += (i - start);
@@ -58,10 +53,8 @@ void coalesce(int ptr, int blockSize) {
             newPtr = ptr;
             bool flag = 1;
             int nextBlockSize = (heap[next] >> 1) & 0x7F; // Extract the size from the next block's header
-            printf("nextBlockSize: %d\n",nextBlockSize);
             heap[next] = 0;
             // Merge the current and next blocks
-            printf("merged: %d\n", ((blockSize + nextBlockSize) << 1) + 2);
             heap[ptr] = ((blockSize + nextBlockSize) << 1) + 2;
 
             // Move to the next block
@@ -97,28 +90,20 @@ int mallocBlock(int size) {
                 }
             }
         }
-        // printf("%d\n", ((heap[x] >> 1) & 0x7F) + 1);
         x += ((heap[x] >> 1) & 0x7F) + 1; // Move to the next block using the size from the header (considering the first 7 bits)
     }
     //best fit 
     // Shift all allocated blocks towards the beginning of the heap
     int y = 0;
     while(y < HEAP_SIZE){
-        printf("y = %d, size = %d\n", y , (heap[y] >> 1) & 0x7F);
         if((heap[y] & 1) == 0){
             // int block_size = heap[y] >> 1;
             int free_block_size = ((heap[y] >> 1) & 0x7F);
             int free_block_index = y;
             int nextBlock = y + free_block_size + 1;
-            printf("free_block_size[1] = %d\n", free_block_size);
-            // printf("nextBlock = %d\n", nextBlock);
-            printf("next block size = %d, heap[nextBlock]&1= %d \n", heap[nextBlock], heap[nextBlock] & 1);
-            printf("free_block_index = %d\n", free_block_index);
             while (nextBlock < HEAP_SIZE && (heap[nextBlock] & 1) == 0) {
                 free_block_size += ((heap[nextBlock] >> 1) & 0x7F); // Calculate the combined size of adjacent free blocks
-                printf("free_block_size = %d", free_block_size);
                 nextBlock += ((heap[nextBlock] >> 1) & 0x7F) + 1; // Move to the next block
-                printf("nextBlock = %d\n", nextBlock);
             }
             if ((heap[nextBlock] & 1) == 1){
                 int allocated_block_size = (heap[nextBlock] >> 1) & 0x7F;
@@ -166,11 +151,9 @@ int mallocBlock(int size) {
 void freeBlock(int ptr){
     int blockHeader = ptr - 1; // Calculate the header index from the pointer
     int blockSize = ((heap[blockHeader] >> 1) & 0x7F); //gets the size of the block excluding the header 
-    //printf("block size: %d\n", blockSize);
     int headerPayload = blockSize + blockHeader;
     set_allocated(blockHeader, false); //make the header have LSB 0 to show it's not allocated 
     for(int i = ptr; i<=headerPayload; i++){ //iterates from ptr to the last allocated block and sets the value to 0
-        //printf("index: %d, value: %d \n", i, heap[i]);
         heap[i] = 0; //sets everything inlcuding header to 0
     }
     coalesce(blockHeader, blockSize); //after freeing coelesce from the freed header 
@@ -220,10 +203,6 @@ int reallocBlock(int ptr, int newSize) {
         return newPtr;
     }
 }
-
-
-
-
 
 
 void blockList(){
@@ -278,14 +257,9 @@ int main() {
             int ptr;
             scanf("%d", &ptr);
             freeBlock(ptr);
-            printf("payload: %d freed\n",ptr);
         }else if (strcmp(command, "blocklist") == 0){
             blockList();
 
-        }else if (strcmp(command, "printheap") == 0){
-            for (int i = 0; i < HEAP_SIZE; i++ ){
-                printf("%d\n", heap[i]);
-            }
         }else if (strcmp(command, "writemem") == 0){
             int ptr;
             int i =0;
