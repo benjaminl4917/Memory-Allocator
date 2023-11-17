@@ -23,14 +23,16 @@ void heap_initialization(){
     set_allocated(0, false);
 }
 
+//the ptr is the index of the header
+//block size is the size of the payload
 void coalesce(int ptr, int blockSize) {
     // Forward coalesce: Check if there are adjacent free blocks 
     // after going past the block size, and if there are, merge the free blocks together
 
     int next = ptr + blockSize+1; // Get the address of the next block
-    printf("pointer: %d\n", ptr);
-    printf("heap[next]: %d next: %d\n", heap[next], next);
-    printf("heap[next]&1 %d\n",heap[next]&1);
+    // printf("pointer: %d\n", ptr);
+    // printf("heap[next]: %d next: %d\n", heap[next], next);
+    // printf("heap[next]&1 %d\n",heap[next]&1);
 
     if ((heap[next] & 1) == 0){
 
@@ -161,6 +163,19 @@ int mallocBlock(int size) {
     return -1;
 }
 
+void freeBlock(int ptr){
+    int blockHeader = ptr - 1; // Calculate the header index from the pointer
+    int blockSize = ((heap[blockHeader] >> 1) & 0x7F); //gets the size of the block excluding the header 
+    //printf("block size: %d\n", blockSize);
+    int headerPayload = blockSize + blockHeader;
+    set_allocated(blockHeader, false); //make the header have LSB 0 to show it's not allocated 
+    for(int i = ptr; i<=headerPayload; i++){ //iterates from ptr to the last allocated block and sets the value to 0
+        //printf("index: %d, value: %d \n", i, heap[i]);
+        heap[i] = 0; //sets everything inlcuding header to 0
+    }
+    coalesce(blockHeader, blockSize); //after freeing coelesce from the freed header 
+}
+
 int reallocBlock(int ptr, int newSize) {
     int blockHeader = ptr - 1; // Calculate the header index from the pointer
 
@@ -193,10 +208,15 @@ int reallocBlock(int ptr, int newSize) {
         int newPtr = mallocBlock(newSize);
         if (newPtr != -1) {
             memcpy(&heap[newPtr - 1], &heap[ptr - 1], block_size); // Copy contents to the new block
-            heap[ptr - 1] = 0; // Free the old block
-            memset(&heap[ptr], 0, block_size); //Set the old block to zeros
+            freeBlock(ptr);//frees the old heder 
+
+            // heap[ptr - 1] = 0; // Free the old block
+            // memset(&heap[ptr], 0, block_size); //Set the old block to zeros
             heap[newPtr - 1] = (newSize << 1) | 1;
         }
+
+
+
         return newPtr;
     }
 }
@@ -204,18 +224,7 @@ int reallocBlock(int ptr, int newSize) {
 
 
 
-void freeBlock(int ptr){
-    int blockHeader = ptr - 1; // Calculate the header index from the pointer
-    int blockSize = ((heap[blockHeader] >> 1) & 0x7F); //gets the size of the block excluding the header 
-    //printf("block size: %d\n", blockSize);
-    int headerPayload = blockSize + blockHeader;
-    set_allocated(blockHeader, false); //make the header have LSB 0 to show it's not allocated 
-    for(int i = ptr; i<=headerPayload; i++){ //iterates from ptr to the last allocated block and sets the value to 0
-        printf("index: %d, value: %d \n", i, heap[i]);
-        heap[i] = 0; //sets everything inlcuding header to 0
-    }
-    coalesce(blockHeader, blockSize); //after freeing coelesce from the freed header 
-}
+
 
 void blockList(){
     int start = 0;
@@ -307,3 +316,5 @@ int main() {
 
     return 0;
 }
+
+
