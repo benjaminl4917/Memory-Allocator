@@ -285,6 +285,7 @@ int main() {
             break;
         }else {
             printf("Invalid command\n");
+            while (getchar() != '\n');
         }
     }
 
