@@ -41,7 +41,7 @@ void coalesce(int ptr, int blockSize) {
 
         for (int i = start; i < HEAP_SIZE; ++i) {
         if (heap[i] != 0 || i == HEAP_SIZE-1) {
-                printf("i: %d\n",i);
+                //printf("i: %d\n",i);
 
                 // End of zero byte sequence, merge with the previous block
                 blockSize += (i - start);
@@ -58,10 +58,10 @@ void coalesce(int ptr, int blockSize) {
             newPtr = ptr;
             bool flag = 1;
             int nextBlockSize = (heap[next] >> 1) & 0x7F; // Extract the size from the next block's header
-            printf("nextBlockSize: %d\n",nextBlockSize);
+            //printf("nextBlockSize: %d\n",nextBlockSize);
             heap[next] = 0;
             // Merge the current and next blocks
-            printf("merged: %d\n", ((blockSize + nextBlockSize) << 1) + 2);
+            //printf("merged: %d\n", ((blockSize + nextBlockSize) << 1) + 2);
             heap[ptr] = ((blockSize + nextBlockSize) << 1) + 2;
 
             // Move to the next block
@@ -104,21 +104,21 @@ int mallocBlock(int size) {
     // Shift all allocated blocks towards the beginning of the heap
     int y = 0;
     while(y < HEAP_SIZE){
-        printf("y = %d, size = %d\n", y , (heap[y] >> 1) & 0x7F);
+        //printf("y = %d, size = %d\n", y , (heap[y] >> 1) & 0x7F);
         if((heap[y] & 1) == 0){
             // int block_size = heap[y] >> 1;
             int free_block_size = ((heap[y] >> 1) & 0x7F);
             int free_block_index = y;
             int nextBlock = y + free_block_size + 1;
-            printf("free_block_size[1] = %d\n", free_block_size);
+            //printf("free_block_size[1] = %d\n", free_block_size);
             // printf("nextBlock = %d\n", nextBlock);
-            printf("next block size = %d, heap[nextBlock]&1= %d \n", heap[nextBlock], heap[nextBlock] & 1);
-            printf("free_block_index = %d\n", free_block_index);
+            //printf("next block size = %d, heap[nextBlock]&1= %d \n", heap[nextBlock], heap[nextBlock] & 1);
+            //printf("free_block_index = %d\n", free_block_index);
             while (nextBlock < HEAP_SIZE && (heap[nextBlock] & 1) == 0) {
                 free_block_size += ((heap[nextBlock] >> 1) & 0x7F); // Calculate the combined size of adjacent free blocks
-                printf("free_block_size = %d", free_block_size);
+                //printf("free_block_size = %d", free_block_size);
                 nextBlock += ((heap[nextBlock] >> 1) & 0x7F) + 1; // Move to the next block
-                printf("nextBlock = %d\n", nextBlock);
+                //printf("nextBlock = %d\n", nextBlock);
             }
             if ((heap[nextBlock] & 1) == 1){
                 int allocated_block_size = (heap[nextBlock] >> 1) & 0x7F;
@@ -278,7 +278,7 @@ int main() {
             int ptr;
             scanf("%d", &ptr);
             freeBlock(ptr);
-            printf("payload: %d freed\n",ptr);
+            //printf("payload: %d freed\n",ptr);
         }else if (strcmp(command, "blocklist") == 0){
             blockList();
 
