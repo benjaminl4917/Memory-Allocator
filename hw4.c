@@ -1,3 +1,4 @@
+// Benjamin Lin(73184330) and Andy Phu(18475327)
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
